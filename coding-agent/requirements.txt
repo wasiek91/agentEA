@@ -1,0 +1,5 @@
+langchain==0.3.18
+langchain-anthropic==0.3.5
+langgraph==0.2.64
+python-dotenv>=1.0.0
+rich>=13.7.0

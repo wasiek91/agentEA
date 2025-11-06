@@ -1,0 +1,55 @@
+{
+  // Cline (Claude Dev) Configuration
+  "claude-dev.apiKey": "",
+  "claude-dev.model": "claude-3-5-sonnet-20241022",
+
+  // GitHub Copilot Configuration
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": false,
+    "markdown": true
+  },
+  "github.copilot.editor.enableAutoCompletions": true,
+
+  // Continue Configuration
+  "continue.telemetryEnabled": false,
+  "continue.enableTabAutocomplete": true,
+
+  // General Editor Settings for AI assistance
+  "editor.inlineSuggest.enabled": true,
+  "editor.suggestSelection": "first",
+  "editor.tabCompletion": "on",
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": true,
+    "strings": true
+  },
+
+  // Format on save
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+
+  // Better code readability
+  "editor.fontSize": 14,
+  "editor.lineHeight": 22,
+  "editor.fontFamily": "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
+  "editor.fontLigatures": true,
+
+  // Minimap
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 80,
+
+  // Workbench Layout - AI Panels on the Right
+  "workbench.sideBar.location": "right",
+  "workbench.panel.defaultLocation": "right",
+
+  // Cline - show in sidebar
+  "claude-dev.showInSidebar": true,
+
+  // Continue - show in sidebar
+  "continue.showInSidebar": true,
+
+  // GitHub Copilot Chat in sidebar
+  "github.copilot.chat.useRelativeLinks": true
+}
