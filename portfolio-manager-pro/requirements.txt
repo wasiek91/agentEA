@@ -1,0 +1,60 @@
+# Core Framework
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Database
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Trading & Market Data
+MetaTrader5>=5.0.30
+pandas>=1.5.0
+numpy>=1.24.0
+
+# ML & RL
+stable-baselines3>=1.8.0
+gymnasium>=0.27.0
+torch>=2.0.0
+scikit-learn>=1.2.0
+
+# Backtesting
+ta>=0.10.2
+backtrader>=1.9.74
+
+# Analytics & Visualization
+plotly>=5.13.0
+dash>=2.9.0
+dash-bootstrap-components>=1.4.0
+statsmodels>=0.14.0
+scipy>=1.10.0
+
+# Monitoring & Alerts
+python-telegram-bot>=20.0
+APScheduler>=3.10.0
+
+# Remote Access
+paramiko>=3.3.0
+fabric>=3.2.0
+
+# Logging & Auditing
+python-json-logger>=2.0.7
+structlog>=23.1.0
+
+# API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+requests>=2.31.0
+
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2023.3
+pyyaml>=6.0
+click>=8.1.0
+
+# Development
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
