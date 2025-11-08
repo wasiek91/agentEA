@@ -153,6 +153,106 @@ Kompletes zestaw wyspecjalizowanych agentów Claude Code do zarządzania projekt
 
 ---
 
+## ⚡ Slash Commands (Szybkie operacje)
+
+Dla szybkich operacji **bez otwierania pełnej sesji**:
+
+### 🔍 `/analyze-strategy` - Przeanalizuj strategię
+```bash
+/analyze-strategy portfolio_v2.py
+```
+- Wydajność, risk metrics, rekomendacje
+- Czas: ~2 min
+- Output: Szybka ocena strategii
+
+### 🧪 `/test-backtest` - Uruchom backtest
+```bash
+/test-backtest rl_strategy 1y 2023-01-01
+```
+- Period, return, sharpe ratio, drawdown
+- Czas: ~5 min
+- Output: Backtest results + CSV
+
+### 🔎 `/check-code` - Szybka kontrola kodu
+```bash
+/check-code portfolio-manager-pro/main.py
+```
+- Linting, security, formatting
+- Czas: ~2 min
+- Output: Issues + recommendations
+
+### 📝 `/generate-tests` - Template testów
+```bash
+/generate-tests calculate_sharpe risk_manager.py
+```
+- Wygeneruj szablony testów
+- Czas: ~2 min
+- Output: Test skeleton do implementacji
+
+### 🧠 `/optimize-model` - Szybka konsultacja RL
+```bash
+/optimize-model sharpe 0.8
+```
+- Quick fixes dla problemu
+- Czas: ~2 min
+- Output: Rekomendacje + podziałania
+
+### ✅ `/full-review` - Pełny workflow
+```bash
+/full-review new_feature.py
+```
+- Orchestruje: code check → review → architecture → tests
+- Czas: ~40 min
+- Output: Kompleksowy raport + podsumowanie
+
+---
+
+## 🔗 Integracja: Slash Commands + Agenty
+
+### Workflow dla feature'a:
+
+```
+1. /check-code new_feature.py          ← Szybka kontrola
+2. /full-review new_feature.py         ← Jeśli problemy
+3. .\run-code-reviewer.ps1             ← Głębokie review
+4. .\run-architecture.ps1              ← Architektura
+5. /generate-tests main_func           ← Testy template
+6. .\run-test-generator.ps1            ← Głębokie testy
+```
+
+### Workflow dla optymalizacji:
+
+```
+1. /analyze-strategy strategy.py        ← Szybka analiza
+2. /optimize-model drawdown 25          ← Quick fixes
+3. .\run-rl-expert.ps1                  ← Głębokie konsultacje
+4. /test-backtest strategy.py           ← Validacja
+```
+
+### Workflow dla bug'a:
+
+```
+1. /check-code fixed_file.py            ← Linting + security
+2. .\run-code-reviewer.ps1              ← Code review
+3. /generate-tests fixed_function       ← Test template
+4. .\run-test-generator.ps1             ← Pełne testy
+5. pytest                               ← Uruchom testy
+```
+
+### Kiedy użyć czego:
+
+| Sytuacja | Narzędzie | Czas |
+|----------|-----------|------|
+| **Szybka kontrola** | `/check-code` | 2 min |
+| **Szybka analiza** | `/analyze-strategy` | 2 min |
+| **Głębokie review** | `.\run-code-reviewer.ps1` | 15 min |
+| **Architektura** | `.\run-architecture.ps1` | 20 min |
+| **Optymalizacja RL** | `.\run-rl-expert.ps1` | 30 min |
+| **Testy** | `.\run-test-generator.ps1` | 20 min |
+| **Pełny przegląd** | `/full-review` | 40 min |
+
+---
+
 ## 🚀 Szybki start
 
 ### Instalacja uprawnień wykonywania skryptów
