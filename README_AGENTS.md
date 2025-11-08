@@ -292,6 +292,9 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ### Dla nowej funkcji:
 
 ```
+0. Checkpoint            → /experiment new_feature_v1
+   (lub Esc+Esc → pamiętaj checkpoint)
+
 1. Architecture Advisor    → planowanie struktury
    .\run-architecture.ps1
 
@@ -300,24 +303,39 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 3. Test Generator         → pisanie testów
    .\run-test-generator.ps1
+
+4. Finalize              → Jeśli OK → git commit
+                            Jeśli błędy → Esc+Esc → /rewind
 ```
 
 ### Dla optymalizacji:
 
 ```
+0. Checkpoint            → /experiment rl_optimization
+   (bezpieczne eksperymenty!)
+
 1. RL Expert             → analiza modelu
    .\run-rl-expert.ps1
 
-2. Code Reviewer         → przegląd zmian
+2. Backtest              → /test-backtest strategy.py
+   (validuj zmiany)
+
+3. Code Reviewer         → przegląd zmian
    .\run-code-reviewer.ps1
 
-3. Test Generator        → testy regresyjne
+4. Test Generator        → testy regresyjne
    .\run-test-generator.ps1
+
+5. Finalize              → Jeśli metrics lepsze → git commit
+                            Jeśli regression → /rewind
 ```
 
 ### Dla refaktoryzacji:
 
 ```
+0. Checkpoint            → /experiment refactor_spike
+   (eksperymentuj bez strachu)
+
 1. Architecture Advisor  → planowanie zmian
    .\run-architecture.ps1
 
@@ -326,6 +344,113 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 3. Test Generator        → nowe testy
    .\run-test-generator.ps1
+
+4. Validate              → Wszystkie testy green?
+   .\run-test-generator.ps1
+
+5. Finalize              → Jeśli OK → git commit
+                            Jeśli problemy → /rewind
+```
+
+---
+
+## 🎬 Checkpointing - Bezpieczne Eksperymenty
+
+Claude Code automatycznie śledzi wszystkie twoje zmiany w pliku. Jeśli coś pójdzie nie tak, możesz wrócić do poprzedniego stanu!
+
+### Jak to działa:
+
+**Przed każdą zmianą** → Automatyczny checkpoint
+**Esc + Esc** lub `/rewind` → Wróć do dowolnego punktu
+
+### Use Cases dla agentEA:
+
+#### 1️⃣ **Eksperymenty z RL bez ryzyka**
+```
+1. Checkpoint: Baseline model
+2. Zmień hyperparameters
+3. Training nie działa? → /rewind
+4. Spróbuj inne parametry
+```
+✅ Bezpieczeństwo: zawsze wróć do working version
+
+#### 2️⃣ **Refaktoryzacja architekturalna**
+```
+1. Checkpoint: Current code
+2. Refaktoryzuj strategy_framework.py
+3. Tests failują? → /rewind
+4. Spróbuj inne podejście
+```
+
+#### 3️⃣ **A/B Testing strategii**
+```
+1. Strategy A (checkpoint)
+2. Zmień parametry
+3. Performance gorzej? → /rewind
+4. Spróbuj Strategy B
+```
+
+#### 4️⃣ **Integracja bez strachu**
+```
+1. Portfolio Manager v1 (checkpoint)
+2. Integruj Janosik EA
+3. Połączenie się psuje? → /rewind
+4. Debuguj wolniej
+```
+
+#### 5️⃣ **Iteracyjne ulepszenia**
+```
+1. Feature v1 (checkpoint)
+2. Improvements v1
+3. Regression? → /rewind
+4. Improve v2
+```
+
+### Komendy:
+
+```powershell
+# Otwórz menu rewind
+Esc + Esc
+
+# Lub użyj komendy
+/rewind
+
+# Lub slash command dla expedited sesji
+/experiment
+```
+
+### Co się trackuje:
+
+✅ Edycje plików (Edit, Write narzędzia)
+✅ Conversation history
+
+❌ Nie track: Bash command changes (rm, mv, cp)
+❌ Nie track: External changes poza Claude Code
+
+### Best Practices:
+
+| Praktyka | Opis |
+|----------|------|
+| **Plan before experiment** | Wiedzieć co chcesz testować |
+| **Frequent checkpoints** | Każdy krok = nowy checkpoint |
+| **Use /rewind liberally** | Nie bój się eksperymentować |
+| **Git for permanent** | Checkpoint = undo, Git = historia |
+| **Team workflows** | Checkpoints są lokalne, Git to udział |
+
+### Limity checkpointing'u:
+
+⚠️ **Czas**: Checkpoints persystują 30 dni (konfigurowalnie)
+⚠️ **Sesje**: Tylko pliki edytowane w TEJ sesji
+⚠️ **Bash**: Komendy bash nie są trackowane
+⚠️ **Nie zamienia Git**: To jest "undo", nie "historia"
+
+### Workflow: Eksperymentalna sesja
+
+```
+1. /experiment                    ← Start sesji z checkpoint
+2. Eksperymentuj bez strachu
+3. Jeśli OK → git commit
+4. Jeśli nie OK → /rewind → spróbuj znowu
 ```
 
 ---
