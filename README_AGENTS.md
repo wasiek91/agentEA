@@ -455,6 +455,274 @@ Esc + Esc
 
 ---
 
+## ⚙️ Hooks Automation - Automatyzacja Przepływu Pracy
+
+Hooks to automatyczne skrypty, które uruchamiają się w odpowiedzi na zdarzenia w Claude Code. Zwiększają bezpieczeństwo, formatowanie i spójność projektu.
+
+### 🔧 Dostępne Hooks
+
+#### 1️⃣ **Pre-Commit Validation** (Przed committem)
+**Plik**: `.claude/hooks/pre-commit-validation.py`
+
+Sprawdza przed każdym `git commit`:
+- ✅ Testy projektów (pytest)
+- ✅ Coverage analysis
+- ✅ Secrets detection (hasła, klucze API)
+- ✅ Type checking (mypy)
+
+**Zachowanie**:
+- ✅ Commit BLOKOWANY jeśli: testy failują, coverage za niskie, sekrety znalezione
+- ✅ Commit DOZWOLONY jeśli: wszystko OK
+
+**Przykład**:
+```bash
+git commit -m "feat: add new strategy"
+# Hook uruchomi się automatycznie
+# Wynik: ✅ All checks passed! lub ❌ Tests failed!
+```
+
+---
+
+#### 2️⃣ **Post-Write Auto-Formatting** (Po każdym write/edit)
+**Plik**: `.claude/hooks/post-write-format.sh`
+
+Automatycznie formatuje Python pliki po każdej edycji:
+- 🎨 Black (code formatting)
+- 🎨 isort (import sorting)
+- 🎨 mypy (type checking - opcjonalny)
+
+**Zachowanie**:
+- Uruchamia się automatycznie po każdym `Write` lub `Edit` narzędziem
+- Ciche uruchomienie (brak komunikatów o sukcesie)
+- Ignoruje błędy jeśli narzędzia nie zainstalowane
+
+**Przykład**:
+```bash
+# Editujesz: portfolio-manager-pro/main.py
+# Hook automatycznie uruchomi: black main.py && isort main.py
+# Wynik: Kod zawsze sformatowany!
+```
+
+---
+
+#### 3️⃣ **Pre-Bash Safety** (Przed poleceniami bash) ⚠️
+**Plik**: `.claude/hooks/pre-bash-safety.py`
+
+Blokuje niebezpieczne polecenia bash:
+- 🛑 `rm -rf /` (wipe systemu)
+- 🛑 `git push --force` (rewrite historii)
+- 🛑 `dd if=... of=/dev/sd*` (wipe dysku)
+- 🛑 `mkfs.* | format` (format dysku)
+- ⚠️ `sudo apt | sudo yum | sudo brew` (ostrzeżenie)
+
+**Zachowanie**:
+- Polecenie BLOKOWANE natychmiast
+- Zwraca błąd z opisem dlaczego
+- Wymagana edycja polecenia przed ponowieniem
+
+**Przykład**:
+```bash
+rm -rf /
+# Hook: ❌ Blocked: rm -rf / (system wipe!)
+```
+
+---
+
+#### 4️⃣ **Session Setup** (Na starcie sesji)
+**Plik**: `.claude/hooks/session-setup.sh`
+
+Automatycznie ustawia środowisko na starcie sesji:
+- 📦 Ładuje zmienne z `.env`
+- 🗄️ Sprawdza połączenie PostgreSQL
+- 📚 Pokazuje ostatnie git branche
+
+**Zachowanie**:
+- Uruchamia się raz na starcie
+- Ciche (wynik wyświetlany w logs)
+- Kontynuuje nawet jeśli coś failnie
+
+**Przykład**:
+```
+🚀 Setting up agentEA session...
+📦 Loading .env...
+🗄️  Checking database...
+✅ Database connected
+📚 Recent branches:
+   master 1a2b3c4 [5 minutes ago]
+   feature-rl 5e6f7g8 [2 hours ago]
+✅ Session ready!
+```
+
+---
+
+### 🔌 Konfiguracja Hooks
+
+Hooks konfiguruje się w `.claude/settings.local.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit:*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-validation.py\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-write-format.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-setup.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 🎬 Zdarzenia Hooks
+
+| Event | Matcher | Hooks | Timeout |
+|-------|---------|-------|---------|
+| **PreToolUse** | Przed narzędziem | Może zablokować | 60s |
+| **PostToolUse** | Po narzędziem | Formatowanie | 30s |
+| **SessionStart** | Start sesji | Setup env | 20s |
+
+---
+
+### 🚀 Setup Hooks
+
+#### Instalacja uprawnień (Linux/Mac):
+
+```bash
+chmod +x .claude/hooks/*.sh
+chmod +x .claude/hooks/*.py
+```
+
+#### Weryfikacja instalacji:
+
+```bash
+# Sprawdź czy pliki istnieją
+ls -la .claude/hooks/
+
+# Test hook'ów
+python .claude/hooks/pre-commit-validation.py < /dev/null
+bash .claude/hooks/post-write-format.sh < /dev/null
+```
+
+#### Na Windowsie (PowerShell):
+
+Hook'i działają automatycznie (bash/python uruchamiane przez Claude Code).
+
+Aby testować ręcznie:
+```powershell
+python .claude/hooks/pre-commit-validation.py
+bash .claude/hooks/post-write-format.sh
+```
+
+---
+
+### 📊 Workflow z Hooks
+
+```
+1. Editujesz plik Python
+   ↓
+2. Claude Code uruchamia Write/Edit
+   ↓
+3. Post-Write Hook uruchomi się automatycznie
+   ↓
+4. Plik sformatowany (black, isort, mypy)
+   ↓
+5. Kontynuujesz pracę z czystym kodem
+```
+
+```
+1. Robisz git commit
+   ↓
+2. Claude Code uruchamia Bash(git commit)
+   ↓
+3. Pre-Commit Hook uruchomi się
+   ↓
+4. Sprawdzanie testów, coverage, secrets
+   ↓
+5. ✅ Commit zatwierdzona lub ❌ zablokowana
+```
+
+---
+
+### 💡 Best Practices
+
+| Praktyka | Opis |
+|----------|------|
+| **Śledź logi** | Sprawdzaj output hook'ów |
+| **Nie ignoruj błędów** | Jeśli hook się nie uruchomił, coś może być nie tak |
+| **Testy najpierw** | Zawsze run `pytest` przed committem |
+| **Secrets nigdy** | Nigdy nie commituj `.env` lub klucze API |
+| **Backup antes** | Zrób `git push` regularnie |
+
+---
+
+### 🐛 Troubleshooting
+
+#### Hook się nie uruchomił
+
+```bash
+# 1. Sprawdź czy plik istnieje
+ls .claude/hooks/
+
+# 2. Sprawdź czy ma uprawnienia (Linux/Mac)
+ls -l .claude/hooks/
+
+# 3. Sprawdź settings.local.json - czy hook jest skonfigurowany
+cat .claude/settings.local.json | grep -A 10 "hooks"
+```
+
+#### Hook failuje
+
+```bash
+# Test manualne
+python .claude/hooks/pre-commit-validation.py
+bash .claude/hooks/post-write-format.sh
+
+# Powinno pokazać co jest nie tak
+```
+
+#### Format nie działa po edycji
+
+```bash
+# Sprawdzić czy black/isort zainstalowane
+pip list | grep -E "black|isort"
+
+# Zainstalować jeśli brakuje
+pip install black isort
+```
+
+---
+
 ## 💡 Wskazówki
 
 ### Kontynuacja rozmowy
