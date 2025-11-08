@@ -31,3 +31,14 @@ nul
 # Temporary files
 *.tmp
 *.log
+notatka.txt
+coding-agent/reports/
+coding-agent/installed.txt
+coding-agent/*_prompt.txt
+coding-agent/run_*.ps1
+coding-agent/run_*.py
+coding-agent/test_*.py
+
+# Windows path artifacts
+C:Users*
+C:\Users*
