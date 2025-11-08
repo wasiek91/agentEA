@@ -1,5 +1,9 @@
 {
+  "model": "claude-sonnet-4-5-20250929",
+  "alwaysThinkingEnabled": true,
+  "includeCoAuthoredBy": true,
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "Bash(where.exe:*)",
       "Bash(winget install:*)",
@@ -42,9 +46,26 @@
       "Bash(git rm:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git push:*)",
+      "Bash(git remote add:*)",
+      "Bash(rm:*)",
+      "Bash(git remote:*)",
+      "Bash(npx claude --help:*)",
+      "Bash(npx claude mcp --help:*)",
+      "WebFetch(domain:claude.ai)",
+      "WebSearch",
+      "WebFetch(domain:claudelog.com)",
+      "WebFetch(domain:www.eesel.ai)",
+      "WebFetch(domain:shipyard.build)",
+      "WebFetch(domain:code.claude.com)"
     ],
-    "deny": [],
-    "ask": []
+    "ask": [
+      "Bash(rm -rf:*)",
+      "Bash(format:*)",
+      "Bash(dd:*)",
+      "Bash(mkfs:*)"
+    ],
+    "deny": []
   }
 }
