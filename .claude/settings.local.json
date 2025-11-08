@@ -40,7 +40,9 @@
       "Bash(powershell.exe:*)",
       "Bash(git config:*)",
       "Bash(git rm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

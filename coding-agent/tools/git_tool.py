@@ -13,9 +13,7 @@ class GitStatusTool(BaseTool):
     """Narzędzie do sprawdzania statusu repozytorium git."""
 
     name: str = "git_status"
-    description: str = """Sprawdź status repozytorium git.
-    Pokazuje zmodyfikowane pliki, staged zmiany i aktualną gałąź.
-    Nie wymaga inputu."""
+    description: str = "Check git repository status"
 
     def _run(self, query: str = "") -> str:
         """Pobierz status git."""
@@ -28,14 +26,14 @@ class GitStatusTool(BaseTool):
             )
 
             if result.returncode != 0:
-                return f"Git status nie powiódł się: {result.stderr}"
+                return f"Error: {result.stderr}"
 
             return result.stdout
 
         except FileNotFoundError:
-            return "BŁĄD: Git nie jest zainstalowany lub nie znajduje się w PATH."
+            return "Error: Git not installed"
         except Exception as e:
-            return f"BŁĄD sprawdzania statusu git: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, query: str = "") -> str:
         """Wersja async (nie zaimplementowana)."""
@@ -46,11 +44,7 @@ class GitCommitTool(BaseTool):
     """Narzędzie do commitowania zmian do repozytorium git."""
 
     name: str = "git_commit"
-    description: str = """Commituj zmiany do repozytorium git.
-    Input powinien być stringiem JSON z kluczami 'message' i opcjonalnie 'files'.
-    Jeśli files nie podano, scommituje wszystkie zmiany (git add -A).
-    Przykład: '{"message": "Dodaj implementację aplikacji todo", "files": ["app.py", "test.py"]}'
-    Lub: '{"message": "Commit początkowy"}'"""
+    description: str = "Commit changes to git"
 
     def _run(self, query: str) -> str:
         """Commituj zmiany do git."""
@@ -68,7 +62,7 @@ class GitCommitTool(BaseTool):
                 files = []
 
             if not message:
-                return "BŁĄD: Nie podano wiadomości commita."
+                return "Error: No commit message"
 
             # Pokaż plan commita
             console.print(Panel(
@@ -105,7 +99,7 @@ class GitCommitTool(BaseTool):
                 )
 
             if add_result.returncode != 0:
-                return f"Git add nie powiódł się: {add_result.stderr}"
+                return f"Error: {add_result.stderr}"
 
             # Commit
             commit_result = subprocess.run(
@@ -116,15 +110,14 @@ class GitCommitTool(BaseTool):
             )
 
             if commit_result.returncode != 0:
-                # Sprawdź czy to dlatego że nie ma nic do commitowania
                 if "nothing to commit" in commit_result.stdout.lower():
-                    return "Nie ma nic do commitowania - drzewo robocze czyste."
-                return f"Git commit nie powiódł się: {commit_result.stderr}"
+                    return "Nothing to commit"
+                return f"Error: {commit_result.stderr}"
 
-            return f"Pomyślnie scommitowano:\n{commit_result.stdout}"
+            return commit_result.stdout
 
         except Exception as e:
-            return f"BŁĄD commitowania do git: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, query: str) -> str:
         """Wersja async (nie zaimplementowana)."""
@@ -135,10 +128,7 @@ class GitDiffTool(BaseTool):
     """Narzędzie do przeglądania różnic w git."""
 
     name: str = "git_diff"
-    description: str = """Zobacz zmiany w repozytorium git.
-    Pokazuje różnice między katalogiem roboczym a ostatnim commitem.
-    Input może być pusty dla wszystkich zmian, lub podaj ścieżkę pliku.
-    Przykład: 'app.py' lub '' dla wszystkich plików."""
+    description: str = "View git changes/diff"
 
     def _run(self, query: str = "") -> str:
         """Pobierz git diff."""
@@ -155,15 +145,15 @@ class GitDiffTool(BaseTool):
             )
 
             if result.returncode != 0:
-                return f"Git diff nie powiódł się: {result.stderr}"
+                return f"Error: {result.stderr}"
 
             if not result.stdout:
-                return "Nie wykryto żadnych zmian."
+                return "No changes"
 
             return result.stdout
 
         except Exception as e:
-            return f"BŁĄD pobierania git diff: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, query: str = "") -> str:
         """Wersja async (nie zaimplementowana)."""

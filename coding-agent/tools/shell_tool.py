@@ -14,18 +14,14 @@ class ShellTool(BaseTool):
     """Narzędzie do bezpiecznego wykonywania komend shell."""
 
     name: str = "shell_executor"
-    description: str = """Wykonuj bezpiecznie komendy shell.
-    Używaj tego do uruchamiania komend CLI jak npm, git, python, node, itp.
-    Input powinien być poprawnym stringiem komendy shell.
-    Dozwolone komendy: npm, git, python, node, aider, ls, dir, pwd, cd, cat, mkdir, touch.
-    Przykładowe inputy: 'npm install express', 'git status', 'python script.py'"""
+    description: str = "Execute shell commands safely"
 
     def _run(self, command: str) -> str:
         """Wykonaj komendę shell z kontrolami bezpieczeństwa."""
         try:
             # Kontrola bezpieczeństwa: waliduj komendę
             if not self._is_command_safe(command):
-                return f"BŁĄD: Komenda zablokowana przez filtr bezpieczeństwa: {command}"
+                return "Error: Command blocked"
 
             # Pokaż komendę użytkownikowi
             console.print(Panel(
@@ -56,14 +52,14 @@ class ShellTool(BaseTool):
             output = result.stdout + result.stderr
 
             if result.returncode != 0:
-                return f"Komenda nie powiodła się z kodem {result.returncode}:\n{output}"
+                return f"Error {result.returncode}: {output}"
 
-            return output if output else "Komenda wykonana pomyślnie (brak outputu)."
+            return output if output else ""
 
         except subprocess.TimeoutExpired:
-            return "BŁĄD: Przekroczono limit czasu komendy (5 minut)."
+            return "Error: Timeout (5 min)"
         except Exception as e:
-            return f"BŁĄD wykonywania komendy: {str(e)}"
+            return f"Error: {str(e)}"
 
     def _is_command_safe(self, command: str) -> bool:
         """Sprawdź czy komenda przechodzi filtry bezpieczeństwa."""

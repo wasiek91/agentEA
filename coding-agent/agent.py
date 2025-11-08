@@ -3,7 +3,7 @@ import sys
 import argparse
 from typing import TypedDict, Annotated, Sequence
 import operator
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langgraph.graph import StateGraph, END
@@ -49,10 +49,11 @@ class CodingAgent:
         Config.validate()
 
         # Inicjalizacja LLM
-        self.llm = ChatAnthropic(
+        self.llm = ChatGoogleGenerativeAI(
             model=Config.MODEL_NAME,
-            anthropic_api_key=Config.ANTHROPIC_API_KEY,
-            temperature=0
+            google_api_key=Config.GEMINI_API_KEY,
+            temperature=0,
+            convert_system_message_to_human=True
         )
 
         # Inicjalizacja narzędzi
@@ -70,36 +71,11 @@ class CodingAgent:
 
         # Utworzenie promptu
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """Jesteś ekspertem AI asystentem programisty, który pomaga developerom automatyzując zadania kodowania.
+            ("system", """Expert AI coding assistant. Available tools: shell_executor, aider_executor, aider_status, git_status, git_commit, git_diff, read_file, list_directory, file_exists.
 
-Masz dostęp do następujących narzędzi:
-- shell_executor: Uruchamiaj bezpieczne komendy CLI (npm, git, python, node, itp.)
-- aider_executor: Użyj Aider do tworzenia lub modyfikacji kodu z AI
-- aider_status: Sprawdź czy Aider jest zainstalowany
-- git_status: Sprawdź status repozytorium git
-- git_commit: Commituj zmiany do git
-- git_diff: Zobacz zmiany w git
-- read_file: Czytaj zawartość plików
-- list_directory: Listuj zawartość katalogów
-- file_exists: Sprawdź czy plik/katalog istnieje
-
-Gdy otrzymasz zadanie:
-1. PLANUJ: Rozłóż zadanie na jasne kroki
-2. WYKONUJ: Użyj narzędzi do wykonania każdego kroku
-3. WERYFIKUJ: Sprawdź czy każdy krok zadziałał poprawnie
-4. ITERUJ: Jeśli coś nie wychodzi, spróbuj to naprawić
-
-Zawsze:
-- Sprawdzaj czy pliki istnieją przed ich czytaniem
-- Weryfikuj outputy komend
-- Używaj git do śledzenia zmian
-- Testuj swój kod gdy to możliwe
-- Bądź ostrożny z destrukcyjnymi operacjami
-
-Aktualny katalog roboczy: {cwd}
-
-WAŻNE: Odpowiadaj ZAWSZE po polsku!
-            """),
+Guidelines: Check files exist, verify outputs, use git, test code, avoid destructive ops.
+Current directory: {cwd}
+Respond in Polish."""),
             ("user", "{input}"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ])
@@ -152,18 +128,14 @@ WAŻNE: Odpowiadaj ZAWSZE po polsku!
         ))
 
         # Użyj LLM do utworzenia planu
-        planning_prompt = f"""Przeanalizuj to zadanie i stwórz plan krok po kroku:
+        planning_prompt = f"""Plan for: {state['task']}
 
-Zadanie: {state['task']}
+Numbered steps:
+1. Files to create/modify
+2. Commands to run
+3. Success criteria
 
-Stwórz numerowaną listę konkretnych kroków potrzebnych do wykonania tego zadania.
-Bądź konkretny i możliwy do wykonania. Rozważ:
-1. Jakie pliki muszą być utworzone lub zmodyfikowane?
-2. Jakie komendy muszą być uruchomione?
-3. Jak zweryfikujesz sukces?
-
-ODPOWIADAJ PO POLSKU!
-"""
+Respond in Polish."""
 
         response = self.llm.invoke(planning_prompt)
         plan = response.content
@@ -220,20 +192,14 @@ ODPOWIADAJ PO POLSKU!
 
     def _verification_node(self, state: AgentState) -> AgentState:
         """Node weryfikacji: Zweryfikuj wyniki wykonania."""
-        console.print(Panel(
-            "[bold green]Faza Weryfikacji[/bold green]",
-            border_style="green"
-        ))
-
-        # Prosta weryfikacja: sprawdź czy mamy błędy lub osiągnęliśmy max kroków
         if state.get("error"):
             state["completed"] = True
-            console.print("[red]Zadanie nie powiodło się z powodu błędów.[/red]")
+            console.print("[red]Error - task failed[/red]")
         elif state["current_step"] >= state["max_steps"]:
             state["completed"] = True
-            console.print("[green]Zadanie ukończone (osiągnięto maksymalną liczbę kroków).[/green]")
+            console.print("[green]Done - max steps reached[/green]")
         else:
-            console.print("[yellow]Kontynuacja do następnego kroku...[/yellow]")
+            console.print("[yellow]Continuing...[/yellow]")
 
         return state
 
@@ -313,18 +279,7 @@ def interactive_mode():
                 break
 
             if task.lower() in ['help', 'pomoc']:
-                console.print("""
-[bold]Dostępne komendy:[/bold]
-- Dowolny opis zadania w języku naturalnym
-- 'exit' lub 'quit': Wyjdź z trybu interaktywnego
-- 'help': Pokaż tę pomoc
-
-[bold]Przykładowe zadania:[/bold]
-- Stwórz prostą aplikację todo z Flask
-- Dodaj testy jednostkowe dla aplikacji
-- Napraw błędy lintingu
-- Commituj zmiany do git
-                """)
+                console.print("[bold]Commands:[/bold] exit/quit, help. Type task in natural language.")
                 continue
 
             if not task.strip():
@@ -385,7 +340,7 @@ def main():
 
     except ValueError as e:
         console.print(f"[red]Błąd konfiguracji: {str(e)}[/red]")
-        console.print("[yellow]Upewnij się, że ustawiłeś ANTHROPIC_API_KEY w pliku .env.[/yellow]")
+        console.print("[yellow]Upewnij się, że ustawiłeś GEMINI_API_KEY w pliku .env.[/yellow]")
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]Błąd krytyczny: {str(e)}[/red]")

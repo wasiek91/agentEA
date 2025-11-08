@@ -11,40 +11,37 @@ class ReadFileTool(BaseTool):
     """Narzędzie do czytania zawartości plików."""
 
     name: str = "read_file"
-    description: str = """Czytaj zawartość pliku.
-    Input powinien być ścieżką do pliku (względną lub bezwzględną).
-    Przykład: 'app.py' lub './src/main.py'"""
+    description: str = "Read file contents"
 
     def _run(self, file_path: str) -> str:
         """Czytaj zawartość pliku."""
         try:
             if not file_path.strip():
-                return "BŁĄD: Nie podano ścieżki do pliku."
+                return "Error: No file path"
 
             file_path = file_path.strip()
 
             if not os.path.exists(file_path):
-                return f"BŁĄD: Plik nie znaleziony: {file_path}"
+                return "Error: File not found"
 
             if not os.path.isfile(file_path):
-                return f"BŁĄD: Ścieżka nie jest plikiem: {file_path}"
+                return "Error: Not a file"
 
-            # Sprawdź rozmiar pliku (limit 1MB)
             file_size = os.path.getsize(file_path)
             if file_size > 1024 * 1024:
-                return f"BŁĄD: Plik zbyt duży ({file_size} bajtów). Maksymalny rozmiar to 1MB."
+                return "Error: File too large (>1MB)"
 
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            return f"Zawartość {file_path}:\n\n{content}"
+            return content
 
         except UnicodeDecodeError:
-            return f"BŁĄD: Nie można odczytać pliku (nie jest plikiem tekstowym): {file_path}"
+            return "Error: Not a text file"
         except PermissionError:
-            return f"BŁĄD: Brak uprawnień do czytania pliku: {file_path}"
+            return "Error: Permission denied"
         except Exception as e:
-            return f"BŁĄD czytania pliku: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, file_path: str) -> str:
         """Wersja async (nie zaimplementowana)."""
@@ -55,10 +52,7 @@ class ListDirectoryTool(BaseTool):
     """Narzędzie do listowania zawartości katalogów."""
 
     name: str = "list_directory"
-    description: str = """Listuj pliki i katalogi w podanej ścieżce.
-    Input powinien być ścieżką do katalogu (względną lub bezwzględną).
-    Użyj pustego stringu lub '.' dla aktualnego katalogu.
-    Przykład: '.' lub './src' lub 'C:/projekty/mojaaplikacja'"""
+    description: str = "List directory contents"
 
     def _run(self, dir_path: str = ".") -> str:
         """Listuj zawartość katalogu."""
@@ -69,15 +63,15 @@ class ListDirectoryTool(BaseTool):
             dir_path = dir_path.strip()
 
             if not os.path.exists(dir_path):
-                return f"BŁĄD: Katalog nie znaleziony: {dir_path}"
+                return "Error: Directory not found"
 
             if not os.path.isdir(dir_path):
-                return f"BŁĄD: Ścieżka nie jest katalogiem: {dir_path}"
+                return "Error: Not a directory"
 
             items = os.listdir(dir_path)
 
             if not items:
-                return f"Katalog jest pusty: {dir_path}"
+                return "Empty directory"
 
             # Rozdziel pliki i katalogi
             files = []
@@ -86,28 +80,24 @@ class ListDirectoryTool(BaseTool):
             for item in sorted(items):
                 item_path = os.path.join(dir_path, item)
                 if os.path.isdir(item_path):
-                    directories.append(f"[KATALOG]  {item}")
+                    directories.append(f"[DIR] {item}")
                 else:
-                    size = os.path.getsize(item_path)
-                    files.append(f"[PLIK] {item} ({size} bajtów)")
+                    files.append(f"[FILE] {item}")
 
-            result = f"Zawartość {dir_path}:\n\n"
-
+            result = ""
             if directories:
-                result += "Katalogi:\n"
                 result += "\n".join(directories)
-                result += "\n\n"
-
             if files:
-                result += "Pliki:\n"
+                if result:
+                    result += "\n"
                 result += "\n".join(files)
 
-            return result
+            return result if result else "Empty"
 
         except PermissionError:
-            return f"BŁĄD: Brak uprawnień do dostępu do katalogu: {dir_path}"
+            return "Error: Permission denied"
         except Exception as e:
-            return f"BŁĄD listowania katalogu: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, dir_path: str = ".") -> str:
         """Wersja async (nie zaimplementowana)."""
@@ -118,35 +108,30 @@ class FileExistsTool(BaseTool):
     """Narzędzie do sprawdzania czy plik lub katalog istnieje."""
 
     name: str = "file_exists"
-    description: str = """Sprawdź czy plik lub katalog istnieje.
-    Input powinien być ścieżką do sprawdzenia.
-    Zwraca czy ścieżka istnieje i jakiego jest typu.
-    Przykład: 'app.py' lub './src'"""
+    description: str = "Check if path exists"
 
     def _run(self, path: str) -> str:
         """Sprawdź czy ścieżka istnieje."""
         try:
             if not path.strip():
-                return "BŁĄD: Nie podano ścieżki."
+                return "Error: No path"
 
             path = path.strip()
 
             if not os.path.exists(path):
-                return f"Ścieżka nie istnieje: {path}"
+                return "Not found"
 
             if os.path.isfile(path):
-                size = os.path.getsize(path)
-                return f"Ścieżka istnieje i jest PLIKIEM: {path} ({size} bajtów)"
+                return "File"
             elif os.path.isdir(path):
-                item_count = len(os.listdir(path))
-                return f"Ścieżka istnieje i jest KATALOGIEM: {path} ({item_count} elementów)"
+                return "Directory"
             else:
-                return f"Ścieżka istnieje ale typ jest nieznany: {path}"
+                return "Other"
 
         except PermissionError:
-            return f"Ścieżka istnieje ale brak uprawnień: {path}"
+            return "Permission denied"
         except Exception as e:
-            return f"BŁĄD sprawdzania ścieżki: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, path: str) -> str:
         """Wersja async (nie zaimplementowana)."""

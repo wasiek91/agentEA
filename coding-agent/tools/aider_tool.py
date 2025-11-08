@@ -13,11 +13,7 @@ class AiderTool(BaseTool):
     """Narzędzie do uruchamiania komend Aider do edycji kodu."""
 
     name: str = "aider_executor"
-    description: str = """Wykonuj komendy Aider do edycji kodu używając AI.
-    Używaj tego narzędzia do tworzenia lub modyfikacji plików kodu z instrukcjami w języku naturalnym.
-    Input powinien być stringiem JSON z kluczami 'prompt' i opcjonalnie 'files'.
-    Przykład: '{"prompt": "Stwórz aplikację todo z Flask", "files": ["app.py"]}'
-    Lub: '{"prompt": "Dodaj obsługę błędów do funkcji"}'"""
+    description: str = "Execute Aider for AI code editing"
 
     def _run(self, query: str) -> str:
         """Wykonaj komendę Aider z podanym promptem."""
@@ -35,7 +31,7 @@ class AiderTool(BaseTool):
                 files = []
 
             if not prompt:
-                return "BŁĄD: Nie podano promptu dla Aider."
+                return "Error: No prompt"
 
             # Zbuduj komendę Aider
             cmd_parts = ["aider"]
@@ -65,33 +61,33 @@ class AiderTool(BaseTool):
             if Config.REQUIRE_CONFIRMATION and not Config.DRY_RUN_MODE:
                 response = console.input("[yellow]Wykonać komendę Aider? (t/n): [/yellow]")
                 if response.lower() not in ['t', 'y', 'tak', 'yes']:
-                    return "Wykonanie Aider anulowane przez użytkownika."
+                    return "Cancelled"
 
             # Tryb testowy
             if Config.DRY_RUN_MODE:
-                return f"TRYB TESTOWY: Zostałby wykonany Aider z promptem: {prompt}"
+                return "Dry-run: would execute"
 
             # Wykonaj Aider
             result = subprocess.run(
                 cmd_parts,
                 capture_output=True,
                 text=True,
-                timeout=600  # Timeout 10 minut dla Aider
+                timeout=600
             )
 
             output = result.stdout + result.stderr
 
             if result.returncode != 0:
-                return f"Aider nie powiódł się z kodem {result.returncode}:\n{output}"
+                return f"Error {result.returncode}: {output}"
 
-            return output if output else "Aider wykonany pomyślnie."
+            return output if output else ""
 
         except subprocess.TimeoutExpired:
-            return "BŁĄD: Przekroczono limit czasu komendy Aider (10 minut)."
+            return "Error: Timeout (10 min)"
         except FileNotFoundError:
-            return "BŁĄD: Nie znaleziono Aider. Zainstaluj: pip install aider-chat"
+            return "Error: Aider not found"
         except Exception as e:
-            return f"BŁĄD wykonywania Aider: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, query: str) -> str:
         """Wersja async (nie zaimplementowana)."""
@@ -102,9 +98,7 @@ class AiderStatusTool(BaseTool):
     """Narzędzie do sprawdzania czy Aider jest zainstalowany i działa."""
 
     name: str = "aider_status"
-    description: str = """Sprawdź czy Aider jest zainstalowany i dostępny.
-    Użyj tego przed pierwszym użyciem Aider.
-    Nie wymaga inputu."""
+    description: str = "Check if Aider is installed"
 
     def _run(self, query: str = "") -> str:
         """Sprawdź status instalacji Aider."""
@@ -118,17 +112,14 @@ class AiderStatusTool(BaseTool):
 
             if result.returncode == 0:
                 version = result.stdout.strip()
-                return f"Aider jest zainstalowany: {version}"
+                return f"Installed: {version}"
             else:
-                return "Aider jest zainstalowany ale zwrócił błąd."
+                return "Error: Check failed"
 
         except FileNotFoundError:
-            return (
-                "Aider nie jest zainstalowany. Zainstaluj za pomocą: pip install aider-chat\n"
-                "Dokumentacja: https://aider.chat/"
-            )
+            return "Not installed"
         except Exception as e:
-            return f"Błąd sprawdzania statusu Aider: {str(e)}"
+            return f"Error: {str(e)}"
 
     async def _arun(self, query: str = "") -> str:
         """Wersja async (nie zaimplementowana)."""

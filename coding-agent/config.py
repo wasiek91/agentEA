@@ -9,9 +9,9 @@ load_dotenv()
 class Config:
     """Configuration class for the agent."""
 
-    # API Configuration
-    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-    MODEL_NAME = os.getenv("MODEL_NAME", "claude-sonnet-4-5-20250929")
+    # API Configuration - ZMIENIONE NA GEMINI
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # ← ZMIANA!
+    MODEL_NAME = os.getenv("MODEL_NAME", "gemini-1.5-flash-latest")
 
     # Safety Configuration
     DRY_RUN_MODE = os.getenv("DRY_RUN_MODE", "false").lower() == "true"
@@ -48,9 +48,9 @@ class Config:
     @classmethod
     def validate(cls):
         """Validate configuration."""
-        if not cls.ANTHROPIC_API_KEY:
+        if not cls.GEMINI_API_KEY:  # ← ZMIANA!
             raise ValueError(
-                "ANTHROPIC_API_KEY not found in environment variables. "
+                "GEMINI_API_KEY not found in environment variables. "  # ← ZMIANA!
                 "Please set it in your .env file."
             )
         return True
