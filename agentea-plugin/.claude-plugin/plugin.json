@@ -1,0 +1,23 @@
+{
+  "name": "agentea-plugin",
+  "version": "1.0.0",
+  "description": "Advanced trading strategy automation with RL optimization, multi-agent code review, and development workflow automation",
+  "author": {
+    "name": "wasiek91",
+    "email": "wasiek91@gmail.com",
+    "url": "https://github.com/wasiek91"
+  },
+  "homepage": "https://github.com/wasiek91/agentEA",
+  "repository": "https://github.com/wasiek91/agentEA",
+  "license": "MIT",
+  "keywords": [
+    "trading",
+    "portfolio-management",
+    "reinforcement-learning",
+    "code-review",
+    "development-automation",
+    "forex",
+    "stocks",
+    "agent-framework"
+  ]
+}
