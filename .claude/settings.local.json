@@ -1,9 +1,6 @@
 {
-  "model": "claude-sonnet-4-5-20250929",
-  "alwaysThinkingEnabled": true,
   "includeCoAuthoredBy": true,
   "permissions": {
-    "defaultMode": "acceptEdits",
     "allow": [
       "Bash(where.exe:*)",
       "Bash(winget install:*)",
@@ -58,15 +55,21 @@
       "WebFetch(domain:claudelog.com)",
       "WebFetch(domain:www.eesel.ai)",
       "WebFetch(domain:shipyard.build)",
-      "WebFetch(domain:code.claude.com)"
+      "WebFetch(domain:code.claude.com)",
+      "Bash(npx claude plugin install ./agentea-plugin)",
+      "Bash(npx claude:*)"
     ],
+    "deny": [],
     "ask": [
       "Bash(rm -rf:*)",
       "Bash(format:*)",
       "Bash(dd:*)",
       "Bash(mkfs:*)"
     ],
-    "deny": []
+    "defaultMode": "acceptEdits"
   },
-  "hooks": {}
+  "model": "claude-sonnet-4-5-20250929",
+  "hooks": {},
+  "disableAllHooks": true,
+  "alwaysThinkingEnabled": true
 }
