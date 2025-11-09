@@ -68,10 +68,10 @@ class Settings(BaseSettings):
     # ========== RL CONFIGURATION ==========
     RL_ENABLED: bool = os.getenv("RL_ENABLED", "true").lower() == "true"
     RL_MODEL_TYPE: str = os.getenv("RL_MODEL_TYPE", "PPO")  # DQN, PPO, A2C
-    RL_LEARNING_RATE: float = float(os.getenv("RL_LEARNING_RATE", 0.0003))
+    RL_LEARNING_RATE: float = float(os.getenv("RL_LEARNING_RATE", 0.0001))  # Lower for stable convergence
     RL_BUFFER_SIZE: int = int(os.getenv("RL_BUFFER_SIZE", 100000))
-    RL_BATCH_SIZE: int = int(os.getenv("RL_BATCH_SIZE", 64))
-    RL_GAMMA: float = float(os.getenv("RL_GAMMA", 0.99))
+    RL_BATCH_SIZE: int = int(os.getenv("RL_BATCH_SIZE", 128))  # Increased
+    RL_GAMMA: float = float(os.getenv("RL_GAMMA", 0.97))  # Prioritize recent rewards
     RL_TAU: float = float(os.getenv("RL_TAU", 0.005))
 
     RL_TRAINING_FREQUENCY: str = os.getenv("RL_TRAINING_FREQUENCY", "daily")  # hourly, daily, weekly

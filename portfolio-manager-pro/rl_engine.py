@@ -15,9 +15,57 @@ from datetime import datetime, timedelta
 from stable_baselines3 import DQN, PPO, A2C
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.vec_env import DummyVecEnv
-from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
+from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback, BaseCallback
 
 logger = logging.getLogger(__name__)
+
+
+class SharpeEarlyStoppingCallback(BaseCallback):
+    """Early stopping callback based on Sharpe ratio threshold."""
+
+    def __init__(self, sharpe_threshold: float = 1.0, check_freq: int = 10000, verbose: int = 0):
+        """Initialize callback.
+
+        Args:
+            sharpe_threshold: Target Sharpe ratio to achieve
+            check_freq: Frequency (in timesteps) to evaluate Sharpe
+            verbose: Verbosity level
+        """
+        super().__init__(verbose)
+        self.sharpe_threshold = sharpe_threshold
+        self.check_freq = check_freq
+        self.episode_rewards = []
+        self.best_sharpe = -np.inf
+
+    def _on_step(self) -> bool:
+        """Called at each step. Returns False to stop training."""
+        # Collect episode rewards
+        if len(self.locals.get("infos", [])) > 0:
+            for info in self.locals["infos"]:
+                if "episode" in info:
+                    ep_reward = info["episode"]["r"]
+                    self.episode_rewards.append(ep_reward)
+
+        # Check Sharpe every check_freq steps
+        if self.n_calls % self.check_freq == 0 and len(self.episode_rewards) >= 30:
+            recent_rewards = self.episode_rewards[-30:]
+            mean_reward = np.mean(recent_rewards)
+            std_reward = np.std(recent_rewards)
+
+            if std_reward > 0:
+                sharpe_ratio = mean_reward / std_reward
+            else:
+                sharpe_ratio = 0
+
+            if sharpe_ratio > self.best_sharpe:
+                self.best_sharpe = sharpe_ratio
+                logger.info(f"🎯 New best Sharpe ratio: {sharpe_ratio:.3f} at step {self.n_calls}")
+
+            if sharpe_ratio >= self.sharpe_threshold:
+                logger.info(f"✅ Target Sharpe {self.sharpe_threshold:.2f} achieved! Stopping training.")
+                return False  # Stop training
+
+        return True  # Continue training
 
 
 class TradingEnvironment(gym.Env):
@@ -56,12 +104,13 @@ class TradingEnvironment(gym.Env):
         self.win_count = 0
         self.loss_count = 0
 
-        # State space: [price, RSI, MACD, volume, equity, drawdown, position_size]
+        # State space: [price, RSI, MACD, volume, equity, drawdown, position_size,
+        #               ATR, win_rate, sharpe_estimate, max_drawdown]
         # Normalized to [0, 1] range
         self.observation_space = spaces.Box(
             low=0,
             high=1,
-            shape=(7,),
+            shape=(11,),
             dtype=np.float32
         )
 
@@ -101,11 +150,14 @@ class TradingEnvironment(gym.Env):
                 'price': 0,
                 'rsi': 50,
                 'macd': 0,
-                'volume': 0
+                'volume': 0,
+                'atr': 0
             }
 
         lookback_candles = self.candles.iloc[max(0, self.current_idx - 20):self.current_idx + 1]
         close = lookback_candles['close'].values
+        high = lookback_candles['high'].values
+        low = lookback_candles['low'].values
         volume = lookback_candles['volume'].values
 
         # RSI (14-period)
@@ -122,11 +174,17 @@ class TradingEnvironment(gym.Env):
         else:
             macd = 0
 
+        # ATR (14-period) for volatility
+        atr = ta.volatility.atr(pd.Series(high), pd.Series(low), pd.Series(close), length=14).values[-1]
+        if pd.isna(atr):
+            atr = 0
+
         return {
             'price': float(close[-1]),
             'rsi': float(rsi),
             'macd': float(macd),
-            'volume': float(volume[-1]) if len(volume) > 0 else 0
+            'volume': float(volume[-1]) if len(volume) > 0 else 0,
+            'atr': float(atr)
         }
 
     def _get_state(self) -> np.ndarray:
@@ -148,6 +206,30 @@ class TradingEnvironment(gym.Env):
         drawdown_norm = min(self.drawdown / 50, 1.0)  # Max 50% drawdown
         position_size_norm = (self.open_position['size'] / 1.0) if self.open_position else 0.0
 
+        # New features
+        atr_norm = min(indicators['atr'] / 100, 1.0)  # Volatility indicator
+
+        # Win rate (last 20 trades)
+        if len(self.position_history) > 0:
+            recent_trades = min(20, len(self.position_history))
+            recent_wins = sum(1 for pos in self.position_history[-recent_trades:] if pos['pnl'] > 0)
+            win_rate_norm = recent_wins / recent_trades
+        else:
+            win_rate_norm = 0.5  # Neutral
+
+        # Sharpe estimate (rolling)
+        if len(self.position_history) >= 10:
+            recent_pnls = [pos['pnl'] for pos in self.position_history[-10:]]
+            mean_pnl = np.mean(recent_pnls)
+            std_pnl = np.std(recent_pnls)
+            sharpe_estimate = (mean_pnl / std_pnl) if std_pnl > 0 else 0
+            sharpe_norm = max(min((sharpe_estimate + 2) / 4, 1.0), 0.0)  # Scale from [-2, 2] to [0, 1]
+        else:
+            sharpe_norm = 0.5  # Neutral
+
+        # Max drawdown seen this session
+        max_dd_norm = min(self.drawdown / 20, 1.0)  # Scale to 20% max
+
         state = np.array([
             price_norm,
             rsi_norm,
@@ -155,15 +237,19 @@ class TradingEnvironment(gym.Env):
             volume_norm,
             equity_norm,
             drawdown_norm,
-            position_size_norm
+            position_size_norm,
+            atr_norm,
+            win_rate_norm,
+            sharpe_norm,
+            max_dd_norm
         ], dtype=np.float32)
 
         return state
 
     def _calculate_reward(self, action: int, price_before: float, price_after: float) -> float:
-        """Calculate reward for action.
+        """Calculate reward for action - Sharpe-optimized.
 
-        Reward = profit - risk_penalty + win_rate_bonus
+        Reward = Sharpe ratio component + profit - risk_penalty - transaction_cost
         """
         reward = 0.0
 
@@ -178,9 +264,9 @@ class TradingEnvironment(gym.Env):
 
             reward += pnl / 100  # Normalize profit
 
-            # Drawdown penalty
+            # Drawdown penalty (progressive)
             if self.drawdown > 0:
-                reward -= self.drawdown / 100
+                reward -= (self.drawdown / 100) ** 2  # Quadratic penalty
 
             # Close position reward
             if action == 7 and pnl > 0:
@@ -188,10 +274,26 @@ class TradingEnvironment(gym.Env):
             elif action == 7 and pnl < 0:
                 reward -= 0.5  # Penalty for closing losing position
 
+        # Sharpe ratio component (rolling window)
+        if len(self.position_history) >= 10:
+            recent_pnls = [pos['pnl'] for pos in self.position_history[-10:]]
+            mean_pnl = np.mean(recent_pnls)
+            std_pnl = np.std(recent_pnls)
+
+            if std_pnl > 0:
+                sharpe_estimate = mean_pnl / std_pnl
+                reward += sharpe_estimate * 0.5  # Sharpe bonus
+            else:
+                reward += 0.1  # Small bonus for zero volatility (all wins/losses equal)
+
         # Win rate bonus
         if len(self.position_history) > 0:
             win_rate = self.win_count / (self.win_count + self.loss_count) if (self.win_count + self.loss_count) > 0 else 0
             reward += win_rate * 0.1
+
+        # Transaction cost penalty (discourage overtrading)
+        if action in [1, 2, 3, 4, 5, 6]:  # Opening position
+            reward -= 0.05  # Small cost per trade
 
         return reward
 
@@ -358,10 +460,15 @@ class RLAgent:
                     "MlpPolicy",
                     env,
                     learning_rate=learning_rate,
-                    n_steps=2048,
-                    batch_size=64,
-                    n_epochs=10,
-                    gamma=0.99,
+                    n_steps=512,  # Reduced for faster adaptation (forex needs quick response)
+                    batch_size=128,  # Increased for stable updates
+                    n_epochs=20,  # More epochs for better convergence
+                    gamma=0.97,  # Slightly lower - prioritize recent rewards
+                    gae_lambda=0.95,  # Generalized Advantage Estimation
+                    clip_range=0.2,  # PPO clipping
+                    ent_coef=0.01,  # Entropy bonus for exploration
+                    vf_coef=0.5,  # Value function coefficient
+                    max_grad_norm=0.5,  # Gradient clipping
                     verbose=1
                 )
             elif self.model_type == "A2C":
@@ -381,12 +488,13 @@ class RLAgent:
             logger.error(f"❌ Failed to build model: {e}")
             raise
 
-    def train(self, total_timesteps: int = 50000, eval_episodes: int = 5):
+    def train(self, total_timesteps: int = 50000, eval_episodes: int = 5, sharpe_target: float = 1.0):
         """Train RL model.
 
         Args:
             total_timesteps: Total training steps
             eval_episodes: Episodes between evaluations
+            sharpe_target: Target Sharpe ratio for early stopping
         """
         try:
             if not self.env:
@@ -402,12 +510,20 @@ class RLAgent:
                 name_prefix=f"rl_model_{self.symbol}"
             )
 
+            # Early stopping based on Sharpe ratio
+            sharpe_callback = SharpeEarlyStoppingCallback(
+                sharpe_threshold=sharpe_target,
+                check_freq=5000,
+                verbose=1
+            )
+
             logger.info(f"🤖 Starting training: {self.model_type} for {total_timesteps} steps...")
+            logger.info(f"🎯 Target Sharpe ratio: {sharpe_target:.2f}")
 
             # Train
             self.model.learn(
                 total_timesteps=total_timesteps,
-                callback=checkpoint_callback,
+                callback=[checkpoint_callback, sharpe_callback],
                 progress_bar=True
             )
 
